@@ -105,3 +105,5 @@ dist
 
 cache/*
 !cache/README.md
+
+conf.js

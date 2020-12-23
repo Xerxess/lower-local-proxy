@@ -83,7 +83,7 @@ app.use((req, res, next) => {
 const creatRouter = function (baseUrl, directAgent = false) {
     const router = express.Router()
     router.use(createProxyMiddleware({
-        target: target,
+        target: baseUrl.target || target,
         changeOrigin: true,
         async onProxyRes(proxyRes, req, res) {
             if (directAgent) {
