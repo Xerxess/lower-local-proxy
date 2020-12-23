@@ -63,6 +63,11 @@ const app = express()
 
 app.use((req, res, next) => {
     try {
+        const routeName = req.originalUrl.match(/\/([^/]*).*/)[1]
+        if (baseUrls[routeName].direct) {
+            next()
+            return
+        }
         const contentString = isExistJson(req)
         if (contentString) {
             res.json(JSON.parse(contentString))
@@ -84,7 +89,7 @@ const creatRouter = function (baseUrl, directAgent = false) {
             if (directAgent) {
                 return
             }
-            if (proxyRes.statusCode !== 200) {
+            if (proxyRes.statusCode === 200) {
                 let resContent = ''
                 proxyRes.on('data', (chunk) => {
                     resContent += chunk
@@ -96,7 +101,7 @@ const creatRouter = function (baseUrl, directAgent = false) {
         }
     }));
 
-    app.use(baseUrl, router)
+    app.use(baseUrl.url, router)
 }
 
 // auth 授权基础模块
