@@ -1,23 +1,28 @@
-// const http = require('http')
+const http = require('http')
 const fs = require("fs")
-// const url = require('url')
+const url = require('url')
 const querystring = require('querystring')
-
-
 const express = require('express')
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const {
+    target,
+    baseUrls
+} = require('./conf');
 
 const creatDir = function (req) {
+    const myURL = new URL((req.originalUrl || req.url), target);
+    const dir = `cache/${myURL.hostname}/${req.hostname}`
     try {
-        fs.mkdirSync(`cache/${req.hostname}`)
+        fs.mkdirSync(`cache/${myURL.hostname}`)
+        fs.mkdirSync(dir)
     } catch (error) {
+        console.log('mkdirSync error', error)
     }
-    return 'cache/' + req.hostname
+    return dir
 }
 
-
 const getfileName = function (req) {
-    const myURL = new URL((req.originalUrl || req.url), 'https://example.org/');
+    const myURL = new URL((req.originalUrl || req.url), target);
     const query = querystring.parse(myURL.search.substring(1))
     let fileName = myURL.pathname.replace(/\//g, '_')
     if (query['_']) {
@@ -62,32 +67,16 @@ app.use((req, res, next) => {
         if (contentString) {
             res.json(JSON.parse(contentString))
             res.end()
+        } else {
+            throw new Error('无缓存')
         }
     } catch (error) {
         next()
     }
 })
 
-const target = 'http://192.168.8.236:9999'
-/**
- * api 代理配置
- */
-const baseUrls = {
-    auth: '/auth', // 授权基础模块
-    workbench: '/workbench', // 工作台模块
-    admin: '/admin', // 用户基础模块
-    platform: '/platform', // 管理台模块
-    visitor: '/visitor', // 访客模块
-    file: '/file', // 图片模块
-    message: '/message', // 消息模块
-    dormitory: '/dormitory', // 宿舍管理
-    workflow: '/workflow', // 审批流
-    attendance: '/attendance' // 考勤管理
-}
-
 const creatRouter = function (baseUrl, directAgent = false) {
     const router = express.Router()
-
     router.use(createProxyMiddleware({
         target: target,
         changeOrigin: true,
@@ -121,4 +110,4 @@ creatRouter(baseUrls.message)
 creatRouter(baseUrls.dormitory)
 creatRouter(baseUrls.workflow)
 creatRouter(baseUrls.attendance)
-app.listen(3000, (e) => console.log(e))
+app.listen(3000, (e) => console.log('已开启'))
