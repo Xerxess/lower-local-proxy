@@ -1,7 +1,8 @@
 const http = require('http')
 const fs = require("fs")
 const url = require('url')
-const querystring = require('querystring')
+const md5 = require('md5')
+const qs = require('querystring')
 const express = require('express')
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const {
@@ -22,16 +23,45 @@ const creatDir = function (req) {
 }
 
 const getfileName = function (req) {
-    const myURL = new URL((req.originalUrl || req.url), target);
-    const query = querystring.parse(myURL.search.substring(1))
-    let fileName = myURL.pathname.replace(/\//g, '_')
-    if (query['_']) {
-        delete query['_']
-    }
-    fileName += '__' + Object.keys(query).map(key => {
-        return query[key]
-    }).join('_') + '.json'
-    return fileName.replace(/\//g, '_')
+    return new Promise((resolve, reject) => {
+        const myURL = new URL((req.originalUrl || req.url), target);
+        const query = qs.parse(myURL.search.substring(1))
+        if (req.cacheFileName) {
+            resolve(req.cacheFileName)
+            return
+        }
+        if (req.method == 'POST') {
+            var body = '';
+            req.on('data', function (chunk) {
+                body += chunk;   //读取请求体
+            })
+
+            req.on('end', function () {
+                const postMd5 = md5(body)
+                let fileName = myURL.pathname.replace(/\//g, '_')
+                if (query['_']) {
+                    delete query['_']
+                }
+                fileName += '__' + Object.keys(query).map(key => {
+                    return query[key]
+                }).join('_') + '_' + postMd5 + '.json'
+                fileName.replace(/\//g, '_')
+                req.cacheFileName = fileName.replace(/\//g, '_').replace(/=/g, '_')
+                resolve(req.cacheFileName)
+            })
+        } else {
+            let fileName = myURL.pathname.replace(/\//g, '_')
+            if (query['_']) {
+                delete query['_']
+            }
+            fileName += '__' + Object.keys(query).map(key => {
+                return query[key]
+            }).join('_') + '.json'
+            fileName.replace(/\//g, '_')
+            req.cacheFileName = fileName.replace(/\//g, '_').replace(/=/g, '_')
+            resolve(req.cacheFileName)
+        }
+    })
 }
 
 /**
@@ -41,22 +71,26 @@ const getfileName = function (req) {
  */
 const writeJson = function (resContent, req) {
     const dirPath = creatDir(req)
-    const fileName = getfileName(req)
-    fs.writeFile(`${dirPath}/${fileName}`, resContent, (err) => {
-        console.log(err)
+    return getfileName(req).then(fileName => {
+        fs.writeFile(`${dirPath}/${fileName}`, resContent, (err) => {
+            console.log('文件生成失败', err)
+        })
     })
 }
 
 const isExistJson = function (req) {
     const dirPath = creatDir(req)
-    const fileName = getfileName(req)
-    if (fs.existsSync(`${dirPath}`)) {
-        if (fs.statSync(`${dirPath}/${fileName}`).isFile()) {
-            return fs.readFileSync(`${dirPath}/${fileName}`, 'utf8')
+    return getfileName(req).then(fileName => {
+        if (fs.existsSync(`${dirPath}`)) {
+            if (fs.statSync(`${dirPath}/${fileName}`).isFile()) {
+                return fs.readFileSync(`${dirPath}/${fileName}`, 'utf8')
+            }
+            return false
         }
         return false
-    }
-    return false
+    }).catch(e => {
+        console.log(e)
+    })
 }
 
 const app = express()
@@ -68,13 +102,14 @@ app.use((req, res, next) => {
             next()
             return
         }
-        const contentString = isExistJson(req)
-        if (contentString) {
-            res.json(JSON.parse(contentString))
-            res.end()
-        } else {
-            throw new Error('无缓存')
-        }
+        isExistJson(req).then(contentString => {
+            if (contentString) {
+                res.json(JSON.parse(contentString))
+                res.end()
+            } else {
+                next()
+            }
+        })
     } catch (error) {
         next()
     }
