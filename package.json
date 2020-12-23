@@ -1,0 +1,23 @@
+{
+  "name": "lower-local-proxy",
+  "version": "1.0.0",
+  "description": "本地代理接口，以缓存文件+ip 隔离实现",
+  "main": "index.js",
+  "scripts": {
+    "serve": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xerxess/lower-local-proxy.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Xerxess/lower-local-proxy/issues"
+  },
+  "homepage": "https://github.com/Xerxess/lower-local-proxy#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "http-proxy-middleware": "^1.0.6"
+  }
+}
