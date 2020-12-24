@@ -12,7 +12,15 @@ const baseUrls = {
     message: { url: '/message', direct: false }, // 消息模块
     dormitory: { url: '/dormitory', direct: false }, // 宿舍管理
     workflow: { url: '/workflow', direct: false }, // 审批流
-    attendance: { target: '', url: '/attendance', direct: true } // 考勤管理
+    attendance: {
+        url: '/attendance',
+        target: '',
+        direct: false,
+        ws: true,
+        pathRewrite: {
+            '^/attendance': ''
+        }
+    } // 考勤管理
 }
 
 module.exports = {
