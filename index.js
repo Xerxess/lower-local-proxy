@@ -37,7 +37,7 @@ const getfileName = function (req) {
             resolve(cacheFileName)
             return
         }
-        const postMd5 = Object.keys(req.body).length ? md5(req.body) : ''
+        const postMd5 = Object.keys(req.body).length ? md5(JSON.stringify(req.body)) : ''
         let fileName = myURL.pathname.replace(/\//g, '_')
         if (query['_']) {
             delete query['_']
