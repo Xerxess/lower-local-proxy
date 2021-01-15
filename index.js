@@ -125,7 +125,11 @@ const creatRouter = function (baseUrl) {
         },
         async onProxyReq(proxyReq, req, res, options) {
             // 解决body-parser 读取post参数后不能正常代理
-            if (req.body) {
+            if (req.headers['content-type'] && req.headers['content-type'].indexOf('multipart/form-data;') > -1) {
+                proxyReq.setHeader('Content-Length', req.headers['content-length']);
+                // proxyReq.write(JSON.stringify({ file: '' }));
+            }
+            else if (req.body) {
                 let bodyData = JSON.stringify(req.body);
                 proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
                 proxyReq.write(bodyData);
